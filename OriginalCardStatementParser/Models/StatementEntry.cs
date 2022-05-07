@@ -2,11 +2,16 @@
 {
     internal class StatementEntry
     {
-        public int Order { get; set; }
-
-        public DateTime CreatedAt { get; }
-
-        public string Description { get; }
+        public StatementEntry(int order, DateTime createdAt, string description, decimal amount, bool isRefund, string cardDescription, string category)
+        {
+            Order = order;
+            CreatedAt = createdAt;
+            Description = description;
+            Amount = amount;
+            IsRefund = isRefund;
+            CardDescription = cardDescription;
+            Category = category;
+        }
 
         public decimal Amount { get; }
 
@@ -14,14 +19,12 @@
 
         public string Category { get; }
 
-        public StatementEntry(int order, DateTime createdAt, string description, decimal amount, string cardDescription, string category)
-        {
-            Order = order;
-            CreatedAt = createdAt;
-            Description = description;
-            Amount = amount;
-            CardDescription = cardDescription;
-            Category = category;
-        }
+        public DateTime CreatedAt { get; }
+
+        public string Description { get; }
+
+        public bool IsRefund { get; set; }
+
+        public int Order { get; set; }
     }
 }

@@ -1,4 +1,5 @@
-﻿using OriginalCardStatementParser.Models;
+﻿using Ardalis.GuardClauses;
+using OriginalCardStatementParser.Models;
 using System.Globalization;
 
 namespace OriginalCardStatementParser
@@ -17,6 +18,20 @@ namespace OriginalCardStatementParser
             return new StatementEntryBuilder();
         }
 
+        public StatementEntry Build()
+        {
+            Guard.Against.Null(_mov, nameof(_mov));
+
+            DateTime createdAt = TranslateCreatedAt(_mov.Date);
+            string description = _mov.Description ?? string.Empty;
+            decimal amount = TranslateAmount(_mov.Amount);
+            bool isRefund = _mov.Debit == false;
+            string cardDescription = TranslateCardDescription(_mov.EndingDigits);
+            string category = string.Empty;
+
+            return new StatementEntry(_order, createdAt, description, amount, isRefund, cardDescription, category);
+        }
+
         public StatementEntryBuilder FromMovDto(MovDto mov)
         {
             _mov = mov;
@@ -31,15 +46,9 @@ namespace OriginalCardStatementParser
             return this;
         }
 
-        public StatementEntry Build()
+        private static decimal TranslateAmount(string? amount)
         {
-            DateTime createdAt = TranslateCreatedAt(_mov.Date);
-            string description = _mov.Description ?? string.Empty;
-            decimal amount = TranslateAmount(_mov.Amount);
-            string cardDescription = TranslateCardDescription(_mov.EndingDigits);
-            string category = string.Empty;
-
-            return new StatementEntry(_order, createdAt, description, amount, cardDescription, category);
+            return decimal.Parse(amount ?? string.Empty, CultureInfo.GetCultureInfo("pt-BR"));
         }
 
         private static string TranslateCardDescription(string? endingDigits)
@@ -50,11 +59,6 @@ namespace OriginalCardStatementParser
             }
 
             return "???";
-        }
-
-        private static decimal TranslateAmount(string? amount)
-        {
-            return decimal.Parse(amount ?? string.Empty, CultureInfo.GetCultureInfo("pt-BR"));
         }
 
         private static DateTime TranslateCreatedAt(string? date)

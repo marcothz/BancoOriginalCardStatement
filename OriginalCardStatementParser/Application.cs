@@ -13,22 +13,36 @@ namespace OriginalCardStatementParser
                 Converters = { new CurrencyConverter() }
             };
 
-            using var stream = File.OpenRead("statement.json");
+            var inputFileName = new DirectoryInfo(@"..\..\..\data\")
+                .GetFiles("*.json")
+                .OrderByDescending(f => f.LastWriteTime)
+                .First()
+                .FullName;
+
+            using var stream = File.OpenRead(inputFileName);
 
             var statement = await JsonSerializer.DeserializeAsync<StatementDto>(stream, serializeOptions).AsTask();
 
             int order = 0;
 
             var entries = statement?.MovsByDay?.SelectMany(x => (x.Movs!))?
+                //.Where(m => !IsIgnorableStatementEntry(m))
                 .Select(m => ConvertToStatementEntry(m, ++order))
                 .OrderByDescending(e => e.Order)
                 .ToArray();
 
-            using var writer = new StreamWriter(File.OpenWrite("statement.txt"));
+            var outputFileName = @"..\..\..\data\statement.txt";
+
+            if (File.Exists(outputFileName))
+            {
+                File.Delete(outputFileName);
+            }
+
+            using var writer = new StreamWriter(File.OpenWrite(outputFileName));
 
             foreach (var entry in entries)
             {
-                var text = $"{entry.CreatedAt:dd/MM/yyyy}\t{entry.Description}\t{entry.Amount}\t\t{entry.CardDescription}\t{entry.Category}";
+                var text = $"{entry.CreatedAt:dd/MM/yyyy}\t{entry.Description}\t{entry.Amount}\t{(entry.IsRefund ? "✔️" : "")}\t{entry.CardDescription}";
 
                 writer.WriteLine(text);
             }
@@ -40,6 +54,17 @@ namespace OriginalCardStatementParser
                 .FromMovDto(mov)
                 .WithOrder(order)
                 .Build();
+        }
+
+        private static bool IsIgnorableStatementEntry(MovDto entry)
+        {
+            if (entry.Debit == false
+                && string.Compare(entry.Description, "PAGAMENTO ORIGINAL", StringComparison.OrdinalIgnoreCase) == 0)
+            {
+                return true;
+            }
+
+            return false;
         }
     }
 }
